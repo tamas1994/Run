@@ -45,7 +45,7 @@ public class DynamicWaterMark {
         this.mCal = cal;
         this.mTimeStr = timeStr;
         this.mLengthStr = lengthStr;
-        this.mGpsPointList = gpsPointList;
+        mGpsPointList.addAll(gpsPointList);
         this.mScreenWidth = TamasUtils.getScreenWidth(mActivity);
     }
 

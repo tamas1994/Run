@@ -149,8 +149,13 @@
                     android:background="@color/bg_white"
                     android:layout_width="@dimen/photo_thumbnail_length"
                     android:layout_height="@dimen/photo_thumbnail_length"/>
-                
+
             </LinearLayout>
+            <android.support.v7.widget.RecyclerView
+                android:id="@+id/rv_bottom_thumbnail"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scrollbars="horizontal"/>
         </FrameLayout>
 
 

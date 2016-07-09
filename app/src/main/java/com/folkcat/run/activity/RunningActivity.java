@@ -6,6 +6,8 @@ import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
@@ -26,10 +28,15 @@ import com.amap.api.maps2d.model.LatLng;
 import com.amap.api.maps2d.model.MyLocationStyle;
 import com.amap.api.maps2d.model.PolylineOptions;
 import com.folkcat.run.R;
+import com.folkcat.run.adapter.BottomPhotoRecyclerViewAdapter;
+import com.folkcat.run.db.mode.Photo;
 import com.folkcat.run.db.util.GPSPointUtil;
+import com.folkcat.run.db.util.PhotoUtil;
 import com.folkcat.run.util.GlobalVar;
 import com.folkcat.run.db.util.RunningRecordUtil;
 import com.folkcat.run.mode.DynamicWaterMark;
+
+import java.util.List;
 
 /**
  * Created by Tamas on 2016/7/6.
@@ -56,9 +63,12 @@ public class RunningActivity extends Activity implements LocationSource,
     private TextView mTvDistance;
     private TextView mTvSpeed;
 
+    private RecyclerView mRvBottomThumbnail;
+
     private ImageView mIvTakePhoto;
 
     private Handler mHandler;
+    private List<Photo> mPhotoList;
 
 
 
@@ -85,6 +95,7 @@ public class RunningActivity extends Activity implements LocationSource,
         mTvSpeed=(TextView)findViewById(R.id.tv_speed);
         mTvTime=(TextView)findViewById(R.id.tv_time);
         mIvTakePhoto=(ImageView)findViewById(R.id.iv_take_photo);
+        mRvBottomThumbnail=(RecyclerView)findViewById(R.id.rv_bottom_thumbnail);
 
         mIvTakePhoto.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -95,11 +106,17 @@ public class RunningActivity extends Activity implements LocationSource,
                 startActivity(toCameraActivity);
             }
         });
+
     }
     private void doSomeOtherThing(){
         mRunningId=System.currentTimeMillis();
         RunningRecordUtil.initRecordToDb(mRunningId);
         new Thread(new TimmingRunnable()).start();
+        mPhotoList= PhotoUtil.getPthotosByRunningId(mRunningId);
+        BottomPhotoRecyclerViewAdapter rvAdapter=new BottomPhotoRecyclerViewAdapter(mPhotoList);
+        RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(getApplicationContext(),LinearLayoutManager.HORIZONTAL,false);
+        mRvBottomThumbnail.setLayoutManager(layoutManager);
+        mRvBottomThumbnail.setAdapter(rvAdapter);
 
     }
 
