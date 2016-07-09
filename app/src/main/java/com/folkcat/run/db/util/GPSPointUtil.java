@@ -33,7 +33,7 @@ public class GPSPointUtil {
 
     public static List<GPSPoint> getGointsByRunning(long runningId){
         Realm realm= Realm.getDefaultInstance();
-        RealmResults<GPSPoint> gpsPointList = realm.where(GPSPoint.class).findAll();
+        RealmResults<GPSPoint> gpsPointList = realm.where(GPSPoint.class).equalTo("runningId", runningId).findAll();
         gpsPointList.sort("createDate", RealmResults.SORT_ORDER_DESCENDING);
         return gpsPointList;
     }

@@ -1,4 +1,4 @@
-package com.folkcat.run.db.util;
+package com.folkcat.run.util;
 
 import android.content.Context;
 import android.content.SharedPreferences;

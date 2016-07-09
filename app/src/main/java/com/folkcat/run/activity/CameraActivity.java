@@ -25,18 +25,16 @@ import android.widget.RadioGroup;
 
 import com.folkcat.run.R;
 import com.folkcat.run.adapter.DynamicWaterMarkPagerAdapter;
-import com.folkcat.run.db.util.GlobalVar;
-import com.folkcat.run.db.util.SPUtil;
+import com.folkcat.run.util.GlobalVar;
+import com.folkcat.run.util.SPUtil;
 import com.folkcat.run.mode.DynamicWaterMark;
 import com.folkcat.run.util.TamasUtils;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Created by Tamas on 2015/8/5.
@@ -60,10 +58,6 @@ public class CameraActivity extends Activity {
     private DynamicWaterMarkPagerAdapter mWaterMarkPagerAdapter;
 
     private SPUtil mSPUtil;
-
-
-    private Bitmap mImageBitmap;
-    private File mImageFile;
     private DynamicWaterMark mDynamicWaterMark;
 
     Bitmap mWaterMark1;
@@ -373,54 +367,10 @@ public class CameraActivity extends Activity {
     }
     private Camera.PictureCallback mJpegCallBack = new Camera.PictureCallback() {
         public void onPictureTaken(byte[] data, Camera camera) {
-            // create a filename
-            //String filename = UUID.randomUUID().toString() + ".jpg";
-            String filename = "temp_file_name";
-            // save the jpeg data to disk
-            FileOutputStream os = null;
-            boolean success = true;
-            String imageDir=TamasUtils.getTakedPicDirPath(getApplicationContext()).toString();
-            mImageFile=new File(imageDir+File.separator + filename);
-            Matrix matrix=new Matrix();
-            matrix.reset();
-            int rotate=90;
-            if(mCameraPosition==0){
-                rotate = 270;
-                matrix.setScale(1,-1);
-            }
-
-            matrix.setRotate(rotate);
-            Bitmap rawBitmap = BitmapFactory.decodeByteArray(data,0,data.length);
-            Bitmap originBitmap;
-            originBitmap= TamasUtils.getSquareScaledBitmap(rawBitmap, mPhotoWidth);
-            rawBitmap.recycle();
-            Bitmap rotaBitmap = Bitmap.createBitmap(originBitmap, 0, 0,originBitmap.getWidth(),originBitmap.getHeight() ,matrix,true);
-            //Log.i(TAG,"rotaBitmap W:"+rotaBitmap.getWidth()+"  H:"+rotaBitmap.getHeight());
-            originBitmap.recycle();
-
-            if(mCameraPosition==0){
-                Matrix mtx=new Matrix();
-                mtx.setScale(-1,1);
-                Bitmap flipBm= Bitmap.createBitmap(rotaBitmap, 0, 0,originBitmap.getWidth(),originBitmap.getHeight() ,mtx,true);
-                mImageBitmap= TamasUtils.createBitmapForWatermark(flipBm, mSelectedBm,mWaterMarkPagerAdapter.getV_left(),mWaterMarkPagerAdapter.getV_top());
-            }else{
-                mImageBitmap= TamasUtils.createBitmapForWatermark(rotaBitmap, mSelectedBm,mWaterMarkPagerAdapter.getV_left(),mWaterMarkPagerAdapter.getV_top());
-            }
-            rotaBitmap.recycle();
-            TamasUtils.saveBitmap(getApplicationContext(), mImageBitmap, mImageFile);
-            Bitmap tinyBitmap=TamasUtils.getSquareScaledBitmap(mImageBitmap,(int)(dp(120)));
-            mImageBitmap.recycle();
-            if (success) {
-                // set the photo filename on the result intent
-                if (success) {
-                    Intent i = new Intent();
-                    GlobalVar.bitmapFromCameraActivity=tinyBitmap;
-                    i.putExtra("file_path",mImageFile.getPath());
-                    setResult(Activity.RESULT_OK, i);
-                } else {
-                    setResult(Activity.RESULT_CANCELED);
-                }
-            }
+            final Bitmap bm=mSelectedBm;
+            Runnable handlerPhotoRunnable=new HandlerPhotoRunnable(data,camera,bm);
+            new Thread(handlerPhotoRunnable).start();
+            mSelectedBm=null;
             finish();
         }
     };
@@ -446,10 +396,69 @@ public class CameraActivity extends Activity {
     }
 
     private class HandlerPhotoRunnable implements Runnable{
-        public HandlerPhotoRunnable(byte[] data,Camera camera){
-
+        private byte[] data;
+        private Camera camera;
+        private  Bitmap selectedBm;
+        public HandlerPhotoRunnable(byte[] data,Camera camera,Bitmap selectedBm){
+            int shortEdge=selectedBm.getWidth();
+            int otherEdge=selectedBm.getHeight();
+            if(shortEdge>otherEdge)
+                shortEdge=otherEdge;
+            this.selectedBm=TamasUtils.getScaledBitmap(selectedBm,shortEdge);
+            this.data=data;
+            this.camera=camera;
         }
         public void run(){
+            Bitmap imageBitmap;
+            File imageFile;
+            // create a filename
+            //String filename = UUID.randomUUID().toString() + ".jpg";
+            String filename = "temp_file_name";
+            // save the jpeg data to disk
+            FileOutputStream os = null;
+            boolean success = true;
+            String imageDir=TamasUtils.getTakedPicDirPath(getApplicationContext()).toString();
+            imageFile=new File(imageDir+File.separator + filename);
+            Matrix matrix=new Matrix();
+            matrix.reset();
+            int rotate=90;
+            if(mCameraPosition==0){
+                rotate = 270;
+                matrix.setScale(1,-1);
+            }
+
+            matrix.setRotate(rotate);
+            Bitmap rawBitmap = BitmapFactory.decodeByteArray(data,0,data.length);
+            Bitmap originBitmap;
+            originBitmap= TamasUtils.getSquareScaledBitmap(rawBitmap, mPhotoWidth);
+            rawBitmap.recycle();
+            Bitmap rotaBitmap = Bitmap.createBitmap(originBitmap, 0, 0,originBitmap.getWidth(),originBitmap.getHeight() ,matrix,true);
+            //Log.i(TAG,"rotaBitmap W:"+rotaBitmap.getWidth()+"  H:"+rotaBitmap.getHeight());
+            originBitmap.recycle();
+            if(mCameraPosition==0){
+                Matrix mtx=new Matrix();
+                mtx.setScale(-1,1);
+                Bitmap flipBm= Bitmap.createBitmap(rotaBitmap, 0, 0,originBitmap.getWidth(),originBitmap.getHeight() ,mtx,true);
+
+                imageBitmap= TamasUtils.createBitmapForWatermark(flipBm, selectedBm,mWaterMarkPagerAdapter.getV_left(),mWaterMarkPagerAdapter.getV_top());
+            }else{
+                imageBitmap= TamasUtils.createBitmapForWatermark(rotaBitmap, selectedBm,mWaterMarkPagerAdapter.getV_left(),mWaterMarkPagerAdapter.getV_top());
+            }
+            rotaBitmap.recycle();
+            TamasUtils.saveBitmap(getApplicationContext(), imageBitmap, imageFile);
+            Bitmap tinyBitmap=TamasUtils.getSquareScaledBitmap(imageBitmap, (int) (dp(120)));
+            imageBitmap.recycle();
+            if (success) {
+                // set the photo filename on the result intent
+                if (success) {
+                    Intent i = new Intent();
+                    GlobalVar.bitmapFromCameraActivity=tinyBitmap;
+                    i.putExtra("file_path",imageFile.getPath());
+                    setResult(Activity.RESULT_OK, i);
+                } else {
+                    setResult(Activity.RESULT_CANCELED);
+                }
+            }
 
         }
     }

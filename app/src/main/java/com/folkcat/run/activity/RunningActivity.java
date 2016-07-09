@@ -27,7 +27,7 @@ import com.amap.api.maps2d.model.MyLocationStyle;
 import com.amap.api.maps2d.model.PolylineOptions;
 import com.folkcat.run.R;
 import com.folkcat.run.db.util.GPSPointUtil;
-import com.folkcat.run.db.util.GlobalVar;
+import com.folkcat.run.util.GlobalVar;
 import com.folkcat.run.db.util.RunningRecordUtil;
 import com.folkcat.run.mode.DynamicWaterMark;
 
