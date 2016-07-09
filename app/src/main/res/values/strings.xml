@@ -1,4 +1,15 @@
 <resources>
     <string name="app_name">Run</string>
     <string name="action_settings">Settings</string>
+
+    <!--the following added by tamas-->
+    <string name="water_mark_km">KM</string>
+    <string name="water_mark_time">耗时</string>
+    <string name="water_mark_pace">配速</string>
+    <string name="water_mark_cal">燃脂</string>
+    <string name="photo_view_activity_label">照片</string>
+    <string name="photo_view_activity_share">把照片分享到：</string>
+    <string name="album_edit">编辑</string>
+    <string name="album_title">我的相册</string>
+    <!--added by tamas end-->
 </resources>

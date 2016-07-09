@@ -1,12 +1,15 @@
 package com.folkcat.run.activity;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
+import android.view.View;
 import android.view.WindowManager;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.amap.api.location.AMapLocation;
@@ -24,7 +27,9 @@ import com.amap.api.maps2d.model.MyLocationStyle;
 import com.amap.api.maps2d.model.PolylineOptions;
 import com.folkcat.run.R;
 import com.folkcat.run.db.util.GPSPointUtil;
+import com.folkcat.run.db.util.GlobalVar;
 import com.folkcat.run.db.util.RunningRecordUtil;
+import com.folkcat.run.mode.DynamicWaterMark;
 
 /**
  * Created by Tamas on 2016/7/6.
@@ -46,9 +51,12 @@ public class RunningActivity extends Activity implements LocationSource,
     private int mTimeMinute=0;
     private int mTimeSecond=0;
 
+
     private TextView mTvTime;
     private TextView mTvDistance;
     private TextView mTvSpeed;
+
+    private ImageView mIvTakePhoto;
 
     private Handler mHandler;
 
@@ -76,6 +84,17 @@ public class RunningActivity extends Activity implements LocationSource,
         mTvDistance=(TextView)findViewById(R.id.tv_distance);
         mTvSpeed=(TextView)findViewById(R.id.tv_speed);
         mTvTime=(TextView)findViewById(R.id.tv_time);
+        mIvTakePhoto=(ImageView)findViewById(R.id.iv_take_photo);
+
+        mIvTakePhoto.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                DynamicWaterMark dynamicWaterMark = new DynamicWaterMark(RunningActivity.this, "厦门", "2016-7-9", "20", "20KJ", "60'20''", "3KM", GPSPointUtil.getGointsByRunning(mRunningId));
+                GlobalVar.dynamicWaterMark = dynamicWaterMark;
+                Intent toCameraActivity=new Intent(RunningActivity.this,CameraActivity.class);
+                startActivity(toCameraActivity);
+            }
+        });
     }
     private void doSomeOtherThing(){
         mRunningId=System.currentTimeMillis();
