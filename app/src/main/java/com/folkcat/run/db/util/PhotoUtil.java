@@ -1,17 +1,23 @@
 package com.folkcat.run.db.util;
 
+import android.support.v7.widget.RecyclerView;
+import android.util.Log;
+
 import com.folkcat.run.db.mode.Photo;
 
 import java.util.List;
 
 import io.realm.Realm;
+import io.realm.RealmChangeListener;
 import io.realm.RealmResults;
 
 /**
  * Created by Tamas on 2016/7/10.
  */
 public class PhotoUtil {
+    private static final String TAG="PhotoUtil";
     public static Photo commitPhotoToDb(long runningId,String nailPath,String photoPath){
+        Log.i(TAG, "a photo has been commit to db nailPath:" + nailPath + "  photoPath:" + photoPath);
         Realm realm= Realm.getDefaultInstance();
         realm.beginTransaction();
         Photo photoRealm =realm.createObject(Photo.class);
@@ -24,10 +30,17 @@ public class PhotoUtil {
         return photoRealm;
     }
 
-    public static List<Photo> getPthotosByRunningId(long runningId){
+    public static List<Photo> getPthotosByRunningIdAndUpdateUi(long runningId, final RecyclerView.Adapter adapter){
         Realm realm= Realm.getDefaultInstance();
         RealmResults<Photo> photoList = realm.where(Photo.class).equalTo("runningId", runningId).findAll();
         photoList.sort("createDate", RealmResults.SORT_ORDER_DESCENDING);
+        realm.addChangeListener(new RealmChangeListener() {
+            @Override
+            public void onChange() {
+                Log.i(TAG, "onChange");
+                adapter.notifyDataSetChanged();
+            }
+        });
         return photoList;
     }
 }

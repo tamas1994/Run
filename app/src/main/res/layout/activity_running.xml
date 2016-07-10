@@ -78,6 +78,8 @@
             android:layout_width="0dp"
             android:layout_height="match_parent">
             <TextView
+                android:clickable="true"
+                android:textColor="@drawable/btn_text_color"
                 android:id="@+id/tv_over"
                 android:textSize="26dp"
                 android:gravity="center"
@@ -152,10 +154,11 @@
 
             </LinearLayout>
             <android.support.v7.widget.RecyclerView
+                android:background="@color/bg_light_gray"
+                android:layout_marginLeft="10dp"
                 android:id="@+id/rv_bottom_thumbnail"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:scrollbars="horizontal"/>
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"/>
         </FrameLayout>
 
 

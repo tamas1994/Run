@@ -13,8 +13,10 @@ public class RunningRecord extends RealmObject {
 
     private long runningId;
     private long createDate;
+    private long finishDate;
     private int numOfGPSPoint;
     private float avageSpeed;
+    private String thumbnailPath;
 
     public long getRunningId() {
         return runningId;
@@ -28,8 +30,23 @@ public class RunningRecord extends RealmObject {
         return createDate;
     }
 
+    public long getFinishDate(){
+        return finishDate;
+    }
+    public String getThumbnailPath(){
+        return thumbnailPath;
+    }
+
+    public void setThumbnailPath(String thumbnailPath){
+        this.thumbnailPath=thumbnailPath;
+    }
+
     public void setCreateDate(long createDate) {
         this.createDate = createDate;
+    }
+
+    public void setFinishDate(long finishDate){
+        this.finishDate=finishDate;
     }
 
     public int getNumOfGPSPoint() {

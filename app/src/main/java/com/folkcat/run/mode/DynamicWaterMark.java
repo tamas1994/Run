@@ -8,6 +8,7 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.Typeface;
+import android.util.Log;
 
 
 import com.folkcat.run.R;
@@ -45,7 +46,9 @@ public class DynamicWaterMark {
         this.mCal = cal;
         this.mTimeStr = timeStr;
         this.mLengthStr = lengthStr;
+        long startTime=System.currentTimeMillis();
         mGpsPointList.addAll(gpsPointList);
+        Log.i(TAG,"共耗时："+(System.currentTimeMillis()-startTime) );
         this.mScreenWidth = TamasUtils.getScreenWidth(mActivity);
     }
 

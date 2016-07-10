@@ -1,11 +1,17 @@
 package com.folkcat.run.activity;
 
 import android.app.Activity;
+import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
+import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
+import android.os.IBinder;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
@@ -28,21 +34,25 @@ import com.amap.api.maps2d.model.LatLng;
 import com.amap.api.maps2d.model.MyLocationStyle;
 import com.amap.api.maps2d.model.PolylineOptions;
 import com.folkcat.run.R;
-import com.folkcat.run.adapter.BottomPhotoRecyclerViewAdapter;
+import com.folkcat.run.adapter.BottomPhotoRvAdapter;
 import com.folkcat.run.db.mode.Photo;
 import com.folkcat.run.db.util.GPSPointUtil;
-import com.folkcat.run.db.util.PhotoUtil;
+import com.folkcat.run.service.MyService;
 import com.folkcat.run.util.GlobalVar;
-import com.folkcat.run.db.util.RunningRecordUtil;
 import com.folkcat.run.mode.DynamicWaterMark;
 
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 
 /**
  * Created by Tamas on 2016/7/6.
  */
 public class RunningActivity extends Activity implements LocationSource,
-        AMapLocationListener{
+        AMapLocationListener,AMap.OnMapScreenShotListener {
     private MapView mMapView;
     private static final String TAG="RunningActivity";
 
@@ -62,6 +72,7 @@ public class RunningActivity extends Activity implements LocationSource,
     private TextView mTvTime;
     private TextView mTvDistance;
     private TextView mTvSpeed;
+    private TextView mTvOver;
 
     private RecyclerView mRvBottomThumbnail;
 
@@ -70,7 +81,21 @@ public class RunningActivity extends Activity implements LocationSource,
     private Handler mHandler;
     private List<Photo> mPhotoList;
 
+    private MyService mService;
 
+
+    ServiceConnection mServiceConnection = new ServiceConnection() {
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            Log.i(TAG, "onServiceDisconnected");
+        }
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder serviceBinder) {
+            //返回一个MsgService对象
+            mService=((MyService.MsgBinder)serviceBinder).getService();
+            Log.i(TAG, "onServiceConnected");
+        }
+    };
 
     @Override
     public void onCreate(Bundle savedInstanceState){
@@ -96,31 +121,53 @@ public class RunningActivity extends Activity implements LocationSource,
         mTvTime=(TextView)findViewById(R.id.tv_time);
         mIvTakePhoto=(ImageView)findViewById(R.id.iv_take_photo);
         mRvBottomThumbnail=(RecyclerView)findViewById(R.id.rv_bottom_thumbnail);
+        mTvOver=(TextView)findViewById(R.id.tv_over);
 
         mIvTakePhoto.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 DynamicWaterMark dynamicWaterMark = new DynamicWaterMark(RunningActivity.this, "厦门", "2016-7-9", "20", "20KJ", "60'20''", "3KM", GPSPointUtil.getGointsByRunning(mRunningId));
                 GlobalVar.dynamicWaterMark = dynamicWaterMark;
-                Intent toCameraActivity=new Intent(RunningActivity.this,CameraActivity.class);
+                Intent toCameraActivity = new Intent(RunningActivity.this, CameraActivity.class);
+                toCameraActivity.putExtra("runningId", mRunningId);
                 startActivity(toCameraActivity);
+            }
+        });
+        mTvOver.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mTvOver.setOnClickListener(null);
+                aMap.getMapScreenShot(RunningActivity.this);
+                aMap.invalidate();//刷新地图
             }
         });
 
     }
     private void doSomeOtherThing(){
         mRunningId=System.currentTimeMillis();
-        RunningRecordUtil.initRecordToDb(mRunningId);
+        //RunningRecordUtil.initRecordToDb(mRunningId);
         new Thread(new TimmingRunnable()).start();
-        mPhotoList= PhotoUtil.getPthotosByRunningId(mRunningId);
-        BottomPhotoRecyclerViewAdapter rvAdapter=new BottomPhotoRecyclerViewAdapter(mPhotoList);
+        //mRunningId=1468156352458l;
+        BottomPhotoRvAdapter rvAdapter=new BottomPhotoRvAdapter(mRunningId);
         RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(getApplicationContext(),LinearLayoutManager.HORIZONTAL,false);
         mRvBottomThumbnail.setLayoutManager(layoutManager);
         mRvBottomThumbnail.setAdapter(rvAdapter);
 
+        Intent intent = new Intent(RunningActivity.this,MyService.class);
+        this.bindService(intent, mServiceConnection, Context.BIND_AUTO_CREATE);
+
+    }
+
+    @Override
+    public void onMapScreenShot(Bitmap bitmap) {
+
+
     }
 
 
+    /*
+    初始化地图
+     */
     private void initMap() {
         if (aMap == null) {
             aMap = mMapView.getMap();
@@ -143,6 +190,10 @@ public class RunningActivity extends Activity implements LocationSource,
 
         }
     }
+
+    /*
+    监听地理位置变化
+     */
     @Override
     public void onLocationChanged(AMapLocation amapLocation) {
         if (mListener != null && amapLocation != null) {
@@ -168,6 +219,10 @@ public class RunningActivity extends Activity implements LocationSource,
             }
         }
     }
+
+    /*
+    计时线程
+     */
     private class TimmingRunnable implements Runnable{
 
         @Override
@@ -190,13 +245,13 @@ public class RunningActivity extends Activity implements LocationSource,
                     e.printStackTrace();
                 }
             }
-
         }
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        Log.i(TAG,"onDestroy Called");
         mMapView.onDestroy();
     }
 

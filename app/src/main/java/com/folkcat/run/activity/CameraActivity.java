@@ -1,14 +1,18 @@
 package com.folkcat.run.activity;
 
 import android.app.Activity;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
 import android.hardware.Camera;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.IBinder;
 import android.support.v4.view.ViewPager;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -25,6 +29,8 @@ import android.widget.RadioGroup;
 
 import com.folkcat.run.R;
 import com.folkcat.run.adapter.DynamicWaterMarkPagerAdapter;
+import com.folkcat.run.db.util.PhotoUtil;
+import com.folkcat.run.service.MyService;
 import com.folkcat.run.util.GlobalVar;
 import com.folkcat.run.util.SPUtil;
 import com.folkcat.run.mode.DynamicWaterMark;
@@ -56,8 +62,13 @@ public class CameraActivity extends Activity {
     private int mScreenWidth;
     private int mPhotoWidth;
     private DynamicWaterMarkPagerAdapter mWaterMarkPagerAdapter;
+    private long mRunningId=0;
+    private Handler mHandler;
 
     private SPUtil mSPUtil;
+
+    private MyService mService;
+
     private DynamicWaterMark mDynamicWaterMark;
 
     Bitmap mWaterMark1;
@@ -68,6 +79,19 @@ public class CameraActivity extends Activity {
     Bitmap mSelectedBm;//指向选择的水印
 
     private boolean isDynamic;//是否动态水印标记
+
+    ServiceConnection mServiceConnection = new ServiceConnection() {
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            Log.i(TAG, "onServiceDisconnected");
+        }
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder serviceBinder) {
+            //返回一个MsgService对象
+            mService=((MyService.MsgBinder)serviceBinder).getService();
+            Log.i(TAG, "onServiceConnected");
+        }
+    };
 
 
 
@@ -82,9 +106,11 @@ public class CameraActivity extends Activity {
     public void onCreate(Bundle savedInstanceState){
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_camera);
+        //PhotoUtil.commitPhotoToDb(mRunningId, "/storage/emulated/0/Android/data/com.folkcat.run/cache/thumbnail/1468161075055", "/storage/emulated/0/Android/data/com.folkcat.run/cache/photos/1468161075055");
         mSPUtil=SPUtil.getInstance(getApplicationContext());
         Intent intent=getIntent();
         isDynamic=intent.getBooleanExtra("is_dynamic",true);
+        mRunningId=intent.getLongExtra("runningId",0);
         initView();
         initValue();
         setListener();
@@ -99,6 +125,7 @@ public class CameraActivity extends Activity {
     }
 
     private void initView(){
+        mHandler=new Handler();
         mScreenHeight= TamasUtils.getScreenHeight(this);
         mScreenWidth=TamasUtils.getScreenWidth(this);
         if(mScreenWidth<640)
@@ -168,8 +195,6 @@ public class CameraActivity extends Activity {
         this.mDynamicWaterMark=GlobalVar.dynamicWaterMark;
         mHolder=mSurfaceView.getHolder();
         mHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
-
-
     }
     private void setListener(){
         mIvCloseCamera.setOnClickListener(new View.OnClickListener() {
@@ -191,7 +216,6 @@ public class CameraActivity extends Activity {
                     mCamera.setPreviewDisplay(mHolder);
 
                 } catch (IOException e) {
-                    // TODO Auto-generated catch block
                     e.printStackTrace();
                 }
                 if (mCameraPosition == 0) {
@@ -404,21 +428,28 @@ public class CameraActivity extends Activity {
             int otherEdge=selectedBm.getHeight();
             if(shortEdge>otherEdge)
                 shortEdge=otherEdge;
+            long startTime=System.currentTimeMillis();
             this.selectedBm=TamasUtils.getScaledBitmap(selectedBm,shortEdge);
+            long endTime=System.currentTimeMillis();
+            Log.i(TAG,"构造耗时:"+(endTime-startTime));
             this.data=data;
             this.camera=camera;
         }
         public void run(){
             Bitmap imageBitmap;
-            File imageFile;
+            final File imageFile;
+            final File thumbnailFile;
             // create a filename
             //String filename = UUID.randomUUID().toString() + ".jpg";
-            String filename = "temp_file_name";
+            String filename = ""+System.currentTimeMillis();
             // save the jpeg data to disk
             FileOutputStream os = null;
             boolean success = true;
             String imageDir=TamasUtils.getTakedPicDirPath(getApplicationContext()).toString();
+            String thumbnailDir=TamasUtils.getThumbnailPath(getApplicationContext()).toString();
             imageFile=new File(imageDir+File.separator + filename);
+            thumbnailFile=new File(thumbnailDir+File.separator+filename);
+
             Matrix matrix=new Matrix();
             matrix.reset();
             int rotate=90;
@@ -428,26 +459,35 @@ public class CameraActivity extends Activity {
             }
 
             matrix.setRotate(rotate);
-            Bitmap rawBitmap = BitmapFactory.decodeByteArray(data,0,data.length);
+            long startTime=System.currentTimeMillis();
+            Bitmap rawBitmap = BitmapFactory.decodeByteArray(data, 0, data.length);
+            long endTime=System.currentTimeMillis();
+            Log.i(TAG,"decode数据耗时:"+(endTime-startTime));
             Bitmap originBitmap;
             originBitmap= TamasUtils.getSquareScaledBitmap(rawBitmap, mPhotoWidth);
             rawBitmap.recycle();
             Bitmap rotaBitmap = Bitmap.createBitmap(originBitmap, 0, 0,originBitmap.getWidth(),originBitmap.getHeight() ,matrix,true);
             //Log.i(TAG,"rotaBitmap W:"+rotaBitmap.getWidth()+"  H:"+rotaBitmap.getHeight());
             originBitmap.recycle();
-            if(mCameraPosition==0){
+
+            if(mCameraPosition==0){//如果是前置摄像头，照片要旋转
                 Matrix mtx=new Matrix();
                 mtx.setScale(-1,1);
                 Bitmap flipBm= Bitmap.createBitmap(rotaBitmap, 0, 0,originBitmap.getWidth(),originBitmap.getHeight() ,mtx,true);
 
                 imageBitmap= TamasUtils.createBitmapForWatermark(flipBm, selectedBm,mWaterMarkPagerAdapter.getV_left(),mWaterMarkPagerAdapter.getV_top());
-            }else{
+            }else{//后置摄像头无须旋转
                 imageBitmap= TamasUtils.createBitmapForWatermark(rotaBitmap, selectedBm,mWaterMarkPagerAdapter.getV_left(),mWaterMarkPagerAdapter.getV_top());
             }
             rotaBitmap.recycle();
             TamasUtils.saveBitmap(getApplicationContext(), imageBitmap, imageFile);
             Bitmap tinyBitmap=TamasUtils.getSquareScaledBitmap(imageBitmap, (int) (dp(120)));
+            TamasUtils.saveBitmap(getApplicationContext(), tinyBitmap, thumbnailFile);
+            PhotoUtil.commitPhotoToDb(mRunningId, thumbnailFile.getPath(), imageFile.getPath());
+
             imageBitmap.recycle();
+            long finalTime=System.currentTimeMillis();
+            Log.i(TAG,"最终耗时:"+(finalTime-startTime));
             if (success) {
                 // set the photo filename on the result intent
                 if (success) {
