@@ -37,10 +37,13 @@ import com.folkcat.run.R;
 import com.folkcat.run.adapter.BottomPhotoRvAdapter;
 import com.folkcat.run.db.mode.Photo;
 import com.folkcat.run.db.util.GPSPointUtil;
+import com.folkcat.run.db.util.RunningRecordUtil;
 import com.folkcat.run.service.MyService;
 import com.folkcat.run.util.GlobalVar;
 import com.folkcat.run.mode.DynamicWaterMark;
+import com.folkcat.run.util.TamasUtils;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -160,8 +163,17 @@ public class RunningActivity extends Activity implements LocationSource,
 
     @Override
     public void onMapScreenShot(Bitmap bitmap) {
+        String mapThumbnailDirPath=TamasUtils.getMapThumbnailPath(getApplicationContext()).toString();
+        File mapThumbnailFile=new File(mapThumbnailDirPath+ File.separator+"map_"+mRunningId);
 
-
+        Bitmap thumbnailBitmap=TamasUtils.getSquareScaledBitmap(bitmap, (int) (dp(180)));
+        TamasUtils.saveBitmap(getApplicationContext(), thumbnailBitmap, mapThumbnailFile);
+        RunningRecordUtil.commitRecordToDb(mRunningId,mRunningId,System.currentTimeMillis(),mapThumbnailFile.getPath());
+        Log.i(TAG,"保存跑步记录成功");
+        finish();
+    }
+    private int dp(int dpValue){
+        return (int) TamasUtils.dip2px(this, dpValue);
     }
 
 

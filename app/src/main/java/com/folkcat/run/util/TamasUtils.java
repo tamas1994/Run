@@ -57,6 +57,21 @@ public class TamasUtils {
         }
         return cacheDir;
     }
+    public static File getMapThumbnailPath(Context ctx){
+        String cachePath;
+        //Preferred to use sd card
+        if (Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState())
+                || !Environment.isExternalStorageRemovable()) {
+            cachePath = ctx.getExternalCacheDir().getPath()+File.separator+"mapthumpnail";
+        } else {
+            cachePath = ctx.getCacheDir().getPath()+File.separator+"mapthumpnail";
+        }
+        File cacheDir=new File(cachePath);
+        if(!cacheDir.exists()){
+            cacheDir.mkdirs();
+        }
+        return cacheDir;
+    }
     /*
     get the directory of pictures
      */
