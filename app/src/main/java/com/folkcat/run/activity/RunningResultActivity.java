@@ -36,6 +36,7 @@ import com.amap.api.maps2d.model.MyLocationStyle;
 import com.amap.api.maps2d.model.PolylineOptions;
 import com.folkcat.run.R;
 import com.folkcat.run.adapter.BottomPhotoRvAdapter;
+import com.folkcat.run.db.mode.GPSPoint;
 import com.folkcat.run.db.mode.Photo;
 import com.folkcat.run.db.util.GPSPointUtil;
 import com.folkcat.run.db.util.RunningRecordUtil;
@@ -50,7 +51,7 @@ import java.util.List;
 /**
  * Created by Tamas on 2016/7/6.
  */
-public class RunningResultActivity extends AppCompatActivity {
+public class RunningResultActivity extends AppCompatActivity implements BottomPhotoRvAdapter.MyItemClickListener {
     private MapView mMapView;
     private static final String TAG="RunningResultActivity";
 
@@ -70,6 +71,8 @@ public class RunningResultActivity extends AppCompatActivity {
 
     private MyService mService;
 
+    private List<GPSPoint> mGPSPointList;
+
 
     ServiceConnection mServiceConnection = new ServiceConnection() {
         @Override
@@ -88,22 +91,19 @@ public class RunningResultActivity extends AppCompatActivity {
     public void onCreate(Bundle savedInstanceState){
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_running_result);
-        Intent intent=getIntent();
 
         if(savedInstanceState==null){
-            mRunningId=intent.getLongExtra("runningId",0);
+            mRunningId=getIntent().getLongExtra("runningId",0);
         }else{
             mRunningId=savedInstanceState.getLong("runningId", 0);
         }
-
-
+        mGPSPointList=GPSPointUtil.getGointsByRunning(mRunningId);
         initView();
         initMap();
         doSomeOtherThing();
         mMapView.onCreate(savedInstanceState);
     }
     private void initView(){
-
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         toolbar.setNavigationIcon(getResources().getDrawable(R.drawable.abc_ic_ab_back_mtrl_am_alpha));
         setSupportActionBar(toolbar);
@@ -146,6 +146,7 @@ public class RunningResultActivity extends AppCompatActivity {
         RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(getApplicationContext(),LinearLayoutManager.HORIZONTAL,false);
         mRvBottomThumbnail.setLayoutManager(layoutManager);
         mRvBottomThumbnail.setAdapter(rvAdapter);
+        rvAdapter.setOnItemClickListener(this);
 
         Intent intent = new Intent(RunningResultActivity.this,MyService.class);
         this.bindService(intent, mServiceConnection, Context.BIND_AUTO_CREATE);
@@ -177,9 +178,53 @@ public class RunningResultActivity extends AppCompatActivity {
             aMap.setMyLocationEnabled(true);// 设置为true表示显示定位层并可触发定位，false表示隐藏定位层并不可触发定位，默认是false
             float maxZoom=aMap.getMaxZoomLevel();//最大缩放级别
             float currentZoom=aMap.getCameraPosition().zoom;//当前缩放级别
-            CameraUpdate update=CameraUpdateFactory.zoomBy(maxZoom-currentZoom-1);
-            aMap.moveCamera(update);
 
+            //寻地图中心点坐标
+            double lat=116.403622,lng=39.919694;//天安门坐标
+            double maxLat=lat;
+            double minLat=lat;
+            double maxLng=lng;
+            double minLng=lng;
+            double lastLat=lat;
+            double lastLng=lng;
+            if(mGPSPointList.size()>0){
+                PolylineOptions polylineOptions=new PolylineOptions();
+                lat=mGPSPointList.get(0).getLatitude();
+                lng=mGPSPointList.get(0).getLongitude();
+                lastLat=lat;
+                lastLng=lng;
+                maxLat=lat;
+                maxLng=lng;
+                minLat=lat;
+                minLng=lng;
+
+                int size=mGPSPointList.size();
+                for(int i=0;i<size;i++){
+                    lat=mGPSPointList.get(i).getLatitude();
+                    lng=mGPSPointList.get(i).getLongitude();
+
+                    polylineOptions.add(new LatLng(lastLat, lastLng), new LatLng(lat, lng));
+
+                    if(lat>maxLat)
+                        maxLat=lat;
+                    if(lng>maxLng)
+                        maxLng=lng;
+                    if(lat<minLat)
+                        minLat=lat;
+                    if(lng<minLng)
+                        minLng=lng;
+                    lastLat=lat;
+                    lastLng=lng;
+                }
+                aMap.addPolyline(polylineOptions);
+
+            }
+
+
+            lat=(maxLat+minLat)/2;
+            lng=(maxLng+minLng)/2;
+            CameraUpdate update=CameraUpdateFactory.newLatLngZoom(new LatLng(lat,lng),(maxZoom-3));
+            aMap.moveCamera(update);
         }
     }
 
@@ -209,8 +254,17 @@ public class RunningResultActivity extends AppCompatActivity {
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
-        outState.putLong("runningId",mRunningId);
+        outState.putLong("runningId", mRunningId);
         mMapView.onSaveInstanceState(outState);
+    }
+
+    @Override
+    public void onItemClick(View view, int position) {
+        Log.i(TAG, "onItemClick called");
+        Intent toRunningResultActivity=new Intent(RunningResultActivity.this,PhotoViewPagerActivity.class);
+        toRunningResultActivity.putExtra("position",position);
+        toRunningResultActivity.putExtra("runningId",mRunningId);
+        startActivity(toRunningResultActivity);
     }
 
 

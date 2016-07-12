@@ -30,17 +30,10 @@ public class PhotoUtil {
         return photoRealm;
     }
 
-    public static List<Photo> getPthotosByRunningIdAndUpdateUi(long runningId, final RecyclerView.Adapter adapter){
+    public static List<Photo> getPthotosByRunningIdAndUpdateUi(long runningId){
         Realm realm= Realm.getDefaultInstance();
         RealmResults<Photo> photoList = realm.where(Photo.class).equalTo("runningId", runningId).findAll();
         photoList.sort("createDate", RealmResults.SORT_ORDER_DESCENDING);
-        realm.addChangeListener(new RealmChangeListener() {
-            @Override
-            public void onChange() {
-                Log.i(TAG, "onChange");
-                adapter.notifyDataSetChanged();
-            }
-        });
         return photoList;
     }
 }

@@ -1,6 +1,8 @@
 package com.folkcat.run.activity;
 
+import android.content.Context;
 import android.content.Intent;
+import android.location.LocationManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
@@ -36,13 +38,30 @@ public class RunningGridActivity extends AppCompatActivity  implements MapThumbG
         }
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
-            private String snackbarMessage = "";
+            private String snackbarMessage = "请开启GPS";
 
             @Override
             public void onClick(View view) {
-                boolean isToShowBtDeviceList = true;
 
-                Snackbar.make(view, snackbarMessage, Snackbar.LENGTH_LONG).setAction("Action", null).show();
+                LocationManager locationManager
+                        = (LocationManager) getApplicationContext().getSystemService(Context.LOCATION_SERVICE);
+                // 通过GPS卫星定位，定位级别可以精确到街（通过24颗卫星定位，在室外和空旷的地方定位准确、速度快）
+                boolean gps = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
+                // 通过WLAN或移动网络(3G/2G)确定的位置（也称作AGPS，辅助GPS定位。主要用于在室内或遮盖物（建筑群或茂密的深林等）密集的地方定位）
+                boolean network = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
+                if (gps || network) {
+                    Intent toRunningActivity=new Intent(RunningGridActivity.this,RunningActivity.class);
+                    startActivity(toRunningActivity);
+                }else{
+                    Snackbar.make(view, snackbarMessage, Snackbar.LENGTH_LONG).setAction("去设置", new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            Intent toOpenGPS = new Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+                            startActivityForResult(toOpenGPS, 0);
+                        }
+                    }).show();
+                }
+
 
             }
         });

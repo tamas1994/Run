@@ -50,8 +50,10 @@ public class MapThumbGruidRvAdapter extends RecyclerView.Adapter<MapThumbGruidRv
 
 
 
+
     public MapThumbGruidRvAdapter() {
         mRunningRecordList= RunningRecordUtil.getRecordListFromDb();
+        Realm.getDefaultInstance().addChangeListener(mRealmListener);
         Log.i(TAG,"mRunningRecordList.size:"+mRunningRecordList.size());
 
     }

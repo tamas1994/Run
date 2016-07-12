@@ -23,6 +23,7 @@ public class BottomPhotoRvAdapter extends RecyclerView.Adapter<BottomPhotoRvAdap
 
     private static final String TAG="BottomPhotoRecyc**";
     private RealmResults<Photo> mPhotoList;
+    private MyItemClickListener mItemClickListener;
 
     /*
     addChangeListener里listener是一个弱引用，极容易被GC。因此为了保证活性，要把listener设为强引用的成员变量
@@ -69,12 +70,27 @@ public class BottomPhotoRvAdapter extends RecyclerView.Adapter<BottomPhotoRvAdap
         return (this.mPhotoList != null) ? this.mPhotoList.size() : 0;
     }
 
-    protected final static class SimpleItemViewHolder extends RecyclerView.ViewHolder {
+    protected  class SimpleItemViewHolder extends RecyclerView.ViewHolder  implements View.OnClickListener {
         protected ImageView imageView;
 
         public SimpleItemViewHolder(View itemView) {
             super(itemView);
             this.imageView = (ImageView) itemView.findViewById(R.id.iv_bottom_photo);
+            imageView.setOnClickListener(this);
         }
+        @Override
+        public void onClick(View v) {
+            Log.i(TAG,"onClick called");
+            if( mItemClickListener!= null){
+                mItemClickListener.onItemClick(v,getPosition());
+            }
+        }
+    }
+    public void setOnItemClickListener(MyItemClickListener listener){
+        this.mItemClickListener = listener;
+    }
+
+    public interface MyItemClickListener {
+        public void onItemClick(View view,int postion);
     }
 }
