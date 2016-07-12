@@ -38,6 +38,7 @@ import com.folkcat.run.R;
 import com.folkcat.run.adapter.BottomPhotoRvAdapter;
 import com.folkcat.run.db.mode.GPSPoint;
 import com.folkcat.run.db.mode.Photo;
+import com.folkcat.run.db.mode.RunningRecord;
 import com.folkcat.run.db.util.GPSPointUtil;
 import com.folkcat.run.db.util.RunningRecordUtil;
 import com.folkcat.run.mode.DynamicWaterMark;
@@ -46,6 +47,8 @@ import com.folkcat.run.util.GlobalVar;
 import com.folkcat.run.util.TamasUtils;
 
 import java.io.File;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -104,8 +107,12 @@ public class RunningResultActivity extends AppCompatActivity implements BottomPh
         mMapView.onCreate(savedInstanceState);
     }
     private void initView(){
+        SimpleDateFormat sdf=new SimpleDateFormat("MM-dd HH:mm");
+        RunningRecord runningRecord=RunningRecordUtil.getRecordById(mRunningId);
+        String titleStr=sdf.format(new Date(runningRecord.getCreateDate()));
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         toolbar.setNavigationIcon(getResources().getDrawable(R.drawable.abc_ic_ab_back_mtrl_am_alpha));
+        toolbar.setTitle(titleStr);
         setSupportActionBar(toolbar);
         getSupportActionBar().setDisplayShowHomeEnabled(false);
         toolbar.setNavigationOnClickListener(new View.OnClickListener() {
@@ -219,8 +226,6 @@ public class RunningResultActivity extends AppCompatActivity implements BottomPh
                 aMap.addPolyline(polylineOptions);
 
             }
-
-
             lat=(maxLat+minLat)/2;
             lng=(maxLng+minLng)/2;
             CameraUpdate update=CameraUpdateFactory.newLatLngZoom(new LatLng(lat,lng),(maxZoom-3));
@@ -266,8 +271,4 @@ public class RunningResultActivity extends AppCompatActivity implements BottomPh
         toRunningResultActivity.putExtra("runningId",mRunningId);
         startActivity(toRunningResultActivity);
     }
-
-
-
-
 }

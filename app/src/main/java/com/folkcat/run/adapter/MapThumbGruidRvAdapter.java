@@ -71,7 +71,7 @@ public class MapThumbGruidRvAdapter extends RecyclerView.Adapter<MapThumbGruidRv
     public void onBindViewHolder(SimpleItemViewHolder viewHolder, int position) {
         RunningRecord recordItem=mRunningRecordList.get(position);
         viewHolder.ivMapThumb.setImageBitmap(BitmapFactory.decodeFile(recordItem.getThumbnailPath()));
-        SimpleDateFormat simpleDateFormat=new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        SimpleDateFormat simpleDateFormat=new SimpleDateFormat("MM-dd HH:mm");
         viewHolder.tvRunningTitle.setText(simpleDateFormat.format(new Date(recordItem.getCreateDate())));
     }
 

@@ -20,11 +20,11 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.ViewPager;
-import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
@@ -32,12 +32,14 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewGroup.LayoutParams;
+import android.view.WindowManager;
 
 
 import com.folkcat.run.R;
 import com.folkcat.run.db.mode.Photo;
 import com.folkcat.run.db.util.PhotoUtil;
 
+import java.io.File;
 import java.util.List;
 
 import uk.co.senab.photoview.HackyViewPager;
@@ -55,29 +57,49 @@ public class PhotoViewPagerActivity extends ActionBarActivity {
     private static final String TAG="PhotoViewPagerActivity";
 
     private static final String ISLOCKED_ARG = "isLocked";
-    private int mCurrentPhotoIndex;
-    private ActionBar mActionBar;
+    private long mRunningId;
 
     private ViewPager mViewPager;
     private int mPosition;
 
-    private static List<Photo> mPhotos;
-    private static int mPhotosSize;
+    private static List<Photo> mPhotoList;
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            //透明状态栏
+            getWindow().addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
+            //透明导航栏
+            getWindow().addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);
+        }
+
         setContentView(R.layout.activity_photo_pager);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+
+        toolbar.setNavigationIcon(getResources().getDrawable(R.mipmap.ic_close));
         setSupportActionBar(toolbar);
+        getSupportActionBar().setDisplayShowHomeEnabled(false);
+        toolbar.setNavigationOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                finish();
+            }
+        });
+
         mViewPager = (HackyViewPager) findViewById(R.id.view_pager);
-        //setContentView(mViewPager);
-        Intent i=getIntent();
+        if(savedInstanceState==null){
+            Intent i=getIntent();
+            mPosition=i.getIntExtra("position",0);
+            mRunningId=i.getLongExtra("runningId", 0);
+        }else{
+            mPosition=savedInstanceState.getInt("position",0);
+            mRunningId=savedInstanceState.getLong("runningId",0);
+        }
 
-        mCurrentPhotoIndex=i.getIntExtra("position",0);
-        long runningId=i.getLongExtra("runningId",0);
-        mPhotos= PhotoUtil.getPthotosByRunningIdAndUpdateUi(runningId);
 
-        mViewPager.setAdapter(new SamplePagerAdapter(this));
+        mPhotoList= PhotoUtil.getPthotosByRunningIdAndUpdateUi(mRunningId);
+        mViewPager.setAdapter(new SamplePagerAdapter());
         if (savedInstanceState != null) {
             boolean isLocked = savedInstanceState.getBoolean(ISLOCKED_ARG, false);
             ((HackyViewPager) mViewPager).setLocked(isLocked);
@@ -97,17 +119,15 @@ public class PhotoViewPagerActivity extends ActionBarActivity {
             public void onPageScrollStateChanged(int state) {
             }
         });
-        mViewPager.setCurrentItem(mCurrentPhotoIndex);
+        mViewPager.setCurrentItem(mPosition);
 
     }
     private class SamplePagerAdapter extends PagerAdapter {
-        private Activity mActivity;
-        public SamplePagerAdapter(Activity activity){
-            this.mActivity=activity;
+        public SamplePagerAdapter(){
         }
         @Override
         public int getCount() {
-            return mPhotos.size();
+            return mPhotoList.size();
         }
         @Override
         public View instantiateItem(ViewGroup container, int position) {
@@ -118,7 +138,7 @@ public class PhotoViewPagerActivity extends ActionBarActivity {
 //            }else{
 //                mPosition=position;
 //            }
-            Bitmap photoBitmap= BitmapFactory.decodeFile(mPhotos.get(position).getPhotoPath());
+            Bitmap photoBitmap= BitmapFactory.decodeFile(mPhotoList.get(position).getPhotoPath());
             //Bitmap scaledBitmap= TamasUtils.getScaledBitmapByShotEdge(photoBitmap, TamasUtils.getScreenWidth(mActivity));
             //photoBitmap.recycle();
             photoView.setImageBitmap(photoBitmap);
@@ -144,6 +164,8 @@ public class PhotoViewPagerActivity extends ActionBarActivity {
         if (isViewPagerActive()) {
             outState.putBoolean(ISLOCKED_ARG, ((HackyViewPager) mViewPager).isLocked());
         }
+        outState.putLong("runningId",mRunningId);
+        outState.putInt("position",mPosition);
         super.onSaveInstanceState(outState);
     }
     @Override
@@ -153,14 +175,13 @@ public class PhotoViewPagerActivity extends ActionBarActivity {
                 finish();
                 break;
             case (R.id.share):
-                /*
                 Intent shareIntent = new Intent();
                 shareIntent.setAction(Intent.ACTION_SEND);
-                shareIntent.putExtra(Intent.EXTRA_STREAM, Uri.fromFile(mPhotos.get(mPosition).getFile()));
+                shareIntent.putExtra(Intent.EXTRA_STREAM, Uri.fromFile(new File(mPhotoList.get(mPosition).getPhotoPath())));
                 shareIntent.setType("image/jpeg");
                 startActivity(Intent.createChooser(shareIntent,getString(R.string.photo_view_activity_share)));
                 break;
-                */
+
             default:
                 break;
         }

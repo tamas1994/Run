@@ -447,8 +447,8 @@ public class CameraActivity extends Activity {
             boolean success = true;
             String imageDir=TamasUtils.getTakedPicDirPath(getApplicationContext()).toString();
             String thumbnailDir=TamasUtils.getThumbnailPath(getApplicationContext()).toString();
-            imageFile=new File(imageDir+File.separator + filename);
-            thumbnailFile=new File(thumbnailDir+File.separator+filename);
+            imageFile=new File(imageDir+File.separator + filename+".jpg");
+            thumbnailFile=new File(thumbnailDir+File.separator+filename+".jpg");
 
             Matrix matrix=new Matrix();
             matrix.reset();

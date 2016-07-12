@@ -42,29 +42,16 @@ public class RunningRecordUtil {
         runningRecordList.sort("createDate", RealmResults.SORT_ORDER_DESCENDING);
         return runningRecordList;
     }
-    //获取习惯列表,并在ui中更新变化
-    public static List<RunningRecord> getRecordListFromDbAndupdateUi(final BaseAdapter adapter){
-        Realm realm= Realm.getDefaultInstance();
-        RealmResults<RunningRecord> runningRecordList = realm.where(RunningRecord.class).findAll();
-        runningRecordList.sort("createDate", RealmResults.SORT_ORDER_DESCENDING);
-        realm.addChangeListener(new RealmChangeListener() {
-            @Override
-            public void onChange() {
-                Log.i(TAG, "onChange");
-                adapter.notifyDataSetChanged();
-            }
-        });
-        return runningRecordList;
-    }
+
     public static RunningRecord getRecordById(long id){
         Realm realm= Realm.getDefaultInstance();
-        RunningRecord runningRecord = realm.where(RunningRecord.class).equalTo("id", id).findFirst();
+        RunningRecord runningRecord = realm.where(RunningRecord.class).equalTo("runningId", id).findFirst();
         return runningRecord;
     }
 
     public static void deleteRecordById(long id){
         Realm realm= Realm.getDefaultInstance();
-        RunningRecord runningRecord =realm.where(RunningRecord.class).equalTo("id",id).findFirst();
+        RunningRecord runningRecord =realm.where(RunningRecord.class).equalTo("runningId",id).findFirst();
         realm.beginTransaction();
         if(runningRecord !=null){
             runningRecord.removeFromRealm();
