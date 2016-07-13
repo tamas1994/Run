@@ -16,7 +16,35 @@ public class RunningRecord extends RealmObject {
     private long finishDate;
     private int numOfGPSPoint;
     private float avageSpeed;
+    private int cal;
+    private int numOfSecond;
+
+    public int getDistance() {
+        return distance;
+    }
+
+    public void setDistance(int distance) {
+        this.distance = distance;
+    }
+
+    private int distance;
     private String thumbnailPath;
+
+    public int getNumOfSecond() {
+        return numOfSecond;
+    }
+
+    public void setNumOfSecond(int numOfSecond) {
+        this.numOfSecond = numOfSecond;
+    }
+
+    public int getCal() {
+        return cal;
+    }
+
+    public void setCal(int cal) {
+        this.cal = cal;
+    }
 
     public long getRunningId() {
         return runningId;

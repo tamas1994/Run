@@ -14,6 +14,7 @@ import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.TextView;
 
 import com.folkcat.run.R;
 import com.folkcat.run.adapter.MapThumbGruidRvAdapter;
@@ -23,6 +24,7 @@ public class RunningGridActivity extends AppCompatActivity  implements MapThumbG
 
     private RecyclerView mRvMapThumbGrid;
     private MapThumbGruidRvAdapter mMapThumbAdapter;
+    private TextView mTvWarning;
 
 
 
@@ -36,6 +38,7 @@ public class RunningGridActivity extends AppCompatActivity  implements MapThumbG
             //透明导航栏
             getWindow().addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);
         }
+        mTvWarning=(TextView)findViewById(R.id.tv_warning);
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             private String snackbarMessage = "请开启GPS";
@@ -49,7 +52,8 @@ public class RunningGridActivity extends AppCompatActivity  implements MapThumbG
                 boolean gps = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
                 // 通过WLAN或移动网络(3G/2G)确定的位置（也称作AGPS，辅助GPS定位。主要用于在室内或遮盖物（建筑群或茂密的深林等）密集的地方定位）
                 boolean network = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
-                if (gps || network) {
+                if (gps) {
+                    mTvWarning.setVisibility(View.GONE);
                     Intent toRunningActivity=new Intent(RunningGridActivity.this,RunningActivity.class);
                     startActivity(toRunningActivity);
                 }else{
@@ -72,6 +76,10 @@ public class RunningGridActivity extends AppCompatActivity  implements MapThumbG
         mMapThumbAdapter=new MapThumbGruidRvAdapter();
         mRvMapThumbGrid.setAdapter(mMapThumbAdapter);
         mMapThumbAdapter.setOnItemClickListener(this);
+
+        if(mMapThumbAdapter.getRunningRecordList().size()>0){
+            mTvWarning.setVisibility(View.GONE);
+        }
     }
 
 
@@ -95,7 +103,8 @@ public class RunningGridActivity extends AppCompatActivity  implements MapThumbG
         Log.i(TAG, "onItemClick called");
         long runningId=mMapThumbAdapter.getRunningRecordList().get(position).getRunningId();
         Intent toRunningResultActivity=new Intent(RunningGridActivity.this,RunningResultActivity.class);
-        toRunningResultActivity.putExtra("runningId",runningId);
+        toRunningResultActivity.putExtra("runningId", runningId);
         startActivity(toRunningResultActivity);
+
     }
 }

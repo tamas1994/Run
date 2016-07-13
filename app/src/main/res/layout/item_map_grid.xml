@@ -10,9 +10,10 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content">
         <ImageView
+            android:clickable="true"
             android:layout_margin="5dp"
             android:padding="6dp"
-            android:background="@color/bg_white"
+            android:background="@drawable/bg_grid_map"
             android:id="@+id/iv_map_thumb"
             android:layout_width="110dp"
             android:layout_height="110dp" />

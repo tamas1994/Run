@@ -19,13 +19,16 @@ public class RunningRecordUtil {
     private static final String TAG="RunningRecordUtil";
 
     //提交一条记录到数据库，注意数据表中以插入时间作为主键，因此插入间隔至少1毫秒
-    public static RunningRecord commitRecordToDb(long runnintId,long createDate,long finishDate,String mapThumpnaiPath){
+    public static RunningRecord commitRecordToDb(long runnintId,long createDate,long finishDate,int cal,int numOfSecond,int distance, String mapThumpnaiPath){
         Realm realm= Realm.getDefaultInstance();
         realm.beginTransaction();
         RunningRecord runningRecordRealm =realm.createObject(RunningRecord.class);
         runningRecordRealm.setRunningId(runnintId);
         runningRecordRealm.setCreateDate(createDate);
         runningRecordRealm.setFinishDate(finishDate);
+        runningRecordRealm.setCal(cal);
+        runningRecordRealm.setNumOfSecond(numOfSecond);
+        runningRecordRealm.setDistance(distance);
         runningRecordRealm.setThumbnailPath(mapThumpnaiPath);
 
         realm.commitTransaction();

@@ -47,6 +47,7 @@ import com.folkcat.run.util.GlobalVar;
 import com.folkcat.run.util.TamasUtils;
 
 import java.io.File;
+import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
@@ -75,6 +76,14 @@ public class RunningResultActivity extends AppCompatActivity implements BottomPh
     private MyService mService;
 
     private List<GPSPoint> mGPSPointList;
+
+    private RunningRecord mRunningRecord;
+
+    private String mDateStr="";
+    private String mCalStr="";
+    private String mSpeedStr="";
+    private String mTimeStr="";
+    private String mDisStr="";
 
 
     ServiceConnection mServiceConnection = new ServiceConnection() {
@@ -108,8 +117,8 @@ public class RunningResultActivity extends AppCompatActivity implements BottomPh
     }
     private void initView(){
         SimpleDateFormat sdf=new SimpleDateFormat("MM-dd HH:mm");
-        RunningRecord runningRecord=RunningRecordUtil.getRecordById(mRunningId);
-        String titleStr=sdf.format(new Date(runningRecord.getCreateDate()));
+        mRunningRecord=RunningRecordUtil.getRecordById(mRunningId);
+        String titleStr=sdf.format(new Date(mRunningRecord.getCreateDate()));
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         toolbar.setNavigationIcon(getResources().getDrawable(R.drawable.abc_ic_ab_back_mtrl_am_alpha));
         toolbar.setTitle(titleStr);
@@ -138,7 +147,7 @@ public class RunningResultActivity extends AppCompatActivity implements BottomPh
         mIvTakePhoto.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                DynamicWaterMark dynamicWaterMark = new DynamicWaterMark(RunningResultActivity.this, "厦门", "2016-7-9", "20", "20KJ", "60'20''", "3KM", GPSPointUtil.getGointsByRunning(mRunningId));
+                DynamicWaterMark dynamicWaterMark = new DynamicWaterMark(RunningResultActivity.this, "厦门", mDateStr, mSpeedStr, mCalStr, mTimeStr,mDisStr, GPSPointUtil.getGointsByRunning(mRunningId));
                 GlobalVar.dynamicWaterMark = dynamicWaterMark;
                 Intent toCameraActivity = new Intent(RunningResultActivity.this, CameraActivity.class);
                 toCameraActivity.putExtra("runningId", mRunningId);
@@ -157,6 +166,20 @@ public class RunningResultActivity extends AppCompatActivity implements BottomPh
 
         Intent intent = new Intent(RunningResultActivity.this,MyService.class);
         this.bindService(intent, mServiceConnection, Context.BIND_AUTO_CREATE);
+
+        SimpleDateFormat sdf=new SimpleDateFormat("yyyy-MM-dd");
+        mDateStr=sdf.format(new Date(mRunningRecord.getCreateDate()));
+        mCalStr=mRunningRecord.getCal()+"KJ";
+        int numOfSecond=mRunningRecord.getNumOfSecond();
+        int minute=numOfSecond/60;
+        int second=numOfSecond%60;
+        mTimeStr=minute+"'"+second+"''";
+        mSpeedStr="15KM/H";
+        float kmDis=mRunningRecord.getDistance()/1000f;
+        BigDecimal b=new BigDecimal(kmDis);
+        kmDis=b.setScale(2,   BigDecimal.ROUND_HALF_UP).floatValue();
+        mDisStr=kmDis+"";
+
 
     }
 
@@ -266,9 +289,9 @@ public class RunningResultActivity extends AppCompatActivity implements BottomPh
     @Override
     public void onItemClick(View view, int position) {
         Log.i(TAG, "onItemClick called");
-        Intent toRunningResultActivity=new Intent(RunningResultActivity.this,PhotoViewPagerActivity.class);
-        toRunningResultActivity.putExtra("position",position);
-        toRunningResultActivity.putExtra("runningId",mRunningId);
-        startActivity(toRunningResultActivity);
+        Intent toPhotoViewActivity=new Intent(RunningResultActivity.this,PhotoViewPagerActivity.class);
+        toPhotoViewActivity.putExtra("position", position);
+        toPhotoViewActivity.putExtra("runningId",mRunningId);
+        startActivity(toPhotoViewActivity);
     }
 }

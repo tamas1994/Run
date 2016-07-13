@@ -47,6 +47,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
@@ -55,7 +56,7 @@ import java.util.List;
  * Created by Tamas on 2016/7/6.
  */
 public class RunningActivity extends Activity implements LocationSource,
-        AMapLocationListener,AMap.OnMapScreenShotListener {
+        AMapLocationListener,AMap.OnMapScreenShotListener,BottomPhotoRvAdapter.MyItemClickListener  {
     private MapView mMapView;
     private static final String TAG="RunningActivity";
 
@@ -64,6 +65,8 @@ public class RunningActivity extends Activity implements LocationSource,
     private AMapLocationClient mlocationClient;
     private AMapLocationClientOption mLocationOption;
     private AMapLocation mLastLocation=null;
+    private AMapLocation mLastValidLocation=null;
+    private boolean isLastValidLocationInit=false;
 
     private float mDistance=0f;
     private int mSpeed=0;
@@ -85,6 +88,8 @@ public class RunningActivity extends Activity implements LocationSource,
     private List<Photo> mPhotoList;
 
     private MyService mService;
+
+    private String mDateStr="";
 
 
     ServiceConnection mServiceConnection = new ServiceConnection() {
@@ -129,7 +134,11 @@ public class RunningActivity extends Activity implements LocationSource,
         mIvTakePhoto.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                DynamicWaterMark dynamicWaterMark = new DynamicWaterMark(RunningActivity.this, "厦门", "2016-7-9", "20", "20KJ", "60'20''", "3KM", GPSPointUtil.getGointsByRunning(mRunningId));
+                float kmDis=mDistance/1000f;
+                BigDecimal b=new BigDecimal(kmDis);
+                kmDis=b.setScale(2,   BigDecimal.ROUND_HALF_UP).floatValue();
+                String kmDisStr=kmDis+"";
+                DynamicWaterMark dynamicWaterMark = new DynamicWaterMark(RunningActivity.this, "厦门", mDateStr, "20", ((int)(mDistance*50))+"KJ", mTimeMinute+"'"+mTimeSecond+"''", kmDisStr, GPSPointUtil.getGointsByRunning(mRunningId));
                 GlobalVar.dynamicWaterMark = dynamicWaterMark;
                 Intent toCameraActivity = new Intent(RunningActivity.this, CameraActivity.class);
                 toCameraActivity.putExtra("runningId", mRunningId);
@@ -155,20 +164,32 @@ public class RunningActivity extends Activity implements LocationSource,
         RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(getApplicationContext(),LinearLayoutManager.HORIZONTAL,false);
         mRvBottomThumbnail.setLayoutManager(layoutManager);
         mRvBottomThumbnail.setAdapter(rvAdapter);
+        rvAdapter.setOnItemClickListener(this);
+
+        SimpleDateFormat sdf=new SimpleDateFormat("yyyy-MM-dd");
+        mDateStr=sdf.format(new Date());
 
         Intent intent = new Intent(RunningActivity.this,MyService.class);
         this.bindService(intent, mServiceConnection, Context.BIND_AUTO_CREATE);
 
+
+
+    }
+
+    public static double caculateDis(double lat1, double lng1, double lat2, double lng2) {
+        double distance=Math.sqrt(Math.pow(lat2 - lat1, 2) + Math.pow(lng2 - lng1, 2));
+        return Math.abs(distance)*99847d;
     }
 
     @Override
     public void onMapScreenShot(Bitmap bitmap) {
         String mapThumbnailDirPath=TamasUtils.getMapThumbnailPath(getApplicationContext()).toString();
         File mapThumbnailFile=new File(mapThumbnailDirPath+ File.separator+"map_"+mRunningId);
+        int cal=(int)(mDistance*50);
 
         Bitmap thumbnailBitmap=TamasUtils.getSquareScaledBitmap(bitmap, (int) (dp(180)));
         TamasUtils.saveBitmap(getApplicationContext(), thumbnailBitmap, mapThumbnailFile);
-        RunningRecordUtil.commitRecordToDb(mRunningId,mRunningId,System.currentTimeMillis(),mapThumbnailFile.getPath());
+        RunningRecordUtil.commitRecordToDb(mRunningId,mRunningId,System.currentTimeMillis(),cal,mTimeMinute*60+mTimeSecond,(int)mDistance,mapThumbnailFile.getPath());
         Log.i(TAG,"保存跑步记录成功");
         finish();
     }
@@ -211,20 +232,29 @@ public class RunningActivity extends Activity implements LocationSource,
         if (mListener != null && amapLocation != null) {
             if (amapLocation != null
                     && amapLocation.getErrorCode() == 0) {
-                if(mLastLocation==null)
+                if(mLastLocation==null){
                     mLastLocation=amapLocation;
-                mListener.onLocationChanged(amapLocation);// 显示系统小蓝点
-                PolylineOptions polylineOptions=new PolylineOptions();
-                polylineOptions.add(new LatLng(mLastLocation.getLatitude(),mLastLocation.getLongitude()),new LatLng(amapLocation.getLatitude(),amapLocation.getLongitude()));
-                mLastLocation=amapLocation;
-                aMap.addPolyline(polylineOptions);
+                    mLastValidLocation=mLastLocation;
+                }
+                float stepDis=(float)caculateDis(mLastLocation.getLatitude(),mLastLocation.getLongitude(),amapLocation.getLatitude(),amapLocation.getLongitude());
+                if(stepDis>0.05&stepDis<100){
+                    mDistance=mDistance+stepDis;
+                    PolylineOptions polylineOptions=new PolylineOptions();
+                    polylineOptions.add(new LatLng(mLastValidLocation.getLatitude(), mLastValidLocation.getLongitude()), new LatLng(amapLocation.getLatitude(), amapLocation.getLongitude()));
+                    aMap.addPolyline(polylineOptions);
+                    GPSPointUtil.commitPointToDb(mRunningId, amapLocation.getLatitude(), amapLocation.getLongitude());
+                    Log.i(TAG, "提交一条GPSPoint记录到数据库 Lat:" + amapLocation.getLatitude() + " Lng:" + amapLocation.getLongitude());
+                    mLastValidLocation=amapLocation;
+                    isLastValidLocationInit=true;
+
+                }
                 CameraUpdate update = CameraUpdateFactory.changeLatLng(new LatLng(amapLocation.getLatitude(),amapLocation.getLongitude()));
-                //aMap.moveCamera(update);
                 aMap.animateCamera(update);
-                GPSPointUtil.commitPointToDb(mRunningId, amapLocation.getLatitude(), amapLocation.getLongitude());
-
-                Log.i(TAG, "提交一条GPSPoint记录到数据库 Lat:"+amapLocation.getLatitude()+" Lng:"+amapLocation.getLongitude());
-
+                mListener.onLocationChanged(amapLocation);// 显示系统小蓝点
+                mLastLocation=amapLocation;
+                if(!isLastValidLocationInit){
+                    mLastValidLocation=amapLocation;
+                }
             } else {
                 String errText = "定位失败," + amapLocation.getErrorCode()+ ": " + amapLocation.getErrorInfo();
                 Log.e("AmapErr",errText);
@@ -251,6 +281,10 @@ public class RunningActivity extends Activity implements LocationSource,
                         @Override
                         public void run() {
                             mTvTime.setText(mTimeMinute+":"+mTimeSecond);
+                            float kmDis=mDistance/1000;
+                            BigDecimal b=new BigDecimal(kmDis);
+                            kmDis=b.setScale(2,   BigDecimal.ROUND_HALF_UP).floatValue();
+                            mTvDistance.setText((kmDis)+"KM");
                         }
                     });
                 } catch (InterruptedException e) {
@@ -263,7 +297,7 @@ public class RunningActivity extends Activity implements LocationSource,
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        Log.i(TAG,"onDestroy Called");
+        Log.i(TAG, "onDestroy Called");
         mMapView.onDestroy();
     }
 
@@ -297,7 +331,7 @@ public class RunningActivity extends Activity implements LocationSource,
             mlocationClient.setLocationListener(this);
             //设置为高精度定位模式
             mLocationOption.setLocationMode(AMapLocationClientOption.AMapLocationMode.Hight_Accuracy);
-            mLocationOption.setGpsFirst(true);
+            //mLocationOption.setGpsFirst(true);
             mLocationOption.setInterval(3000);
             //设置定位参数
             mlocationClient.setLocationOption(mLocationOption);
@@ -317,9 +351,19 @@ public class RunningActivity extends Activity implements LocationSource,
     public void deactivate() {
         mListener = null;
         if (mlocationClient != null) {
+            mlocationClient.unRegisterLocationListener(this);
             mlocationClient.stopLocation();
             mlocationClient.onDestroy();
         }
         mlocationClient = null;
+    }
+
+    @Override
+    public void onItemClick(View view, int position) {
+        Log.i(TAG, "onItemClick called");
+        Intent toPhotoViewActivity=new Intent(RunningActivity.this,PhotoViewPagerActivity.class);
+        toPhotoViewActivity.putExtra("position", position);
+        toPhotoViewActivity.putExtra("runningId",mRunningId);
+        startActivity(toPhotoViewActivity);
     }
 }
