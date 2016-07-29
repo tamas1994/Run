@@ -91,6 +91,8 @@ public class RunningActivity extends Activity implements LocationSource,
 
     private String mDateStr="";
 
+    private int mNumOfGPSPoint=0;
+
 
     ServiceConnection mServiceConnection = new ServiceConnection() {
         @Override
@@ -186,6 +188,9 @@ public class RunningActivity extends Activity implements LocationSource,
         String mapThumbnailDirPath=TamasUtils.getMapThumbnailPath(getApplicationContext()).toString();
         File mapThumbnailFile=new File(mapThumbnailDirPath+ File.separator+"map_"+mRunningId);
         int cal=(int)(mDistance*50);
+        if(mNumOfGPSPoint<1){
+            GPSPointUtil.commitPointToDb(mRunningId,mLastValidLocation.getLatitude(),mLastValidLocation.getLongitude());
+        }
 
         Bitmap thumbnailBitmap=TamasUtils.getSquareScaledBitmap(bitmap, (int) (dp(180)));
         TamasUtils.saveBitmap(getApplicationContext(), thumbnailBitmap, mapThumbnailFile);
@@ -244,6 +249,7 @@ public class RunningActivity extends Activity implements LocationSource,
                     aMap.addPolyline(polylineOptions);
                     GPSPointUtil.commitPointToDb(mRunningId, amapLocation.getLatitude(), amapLocation.getLongitude());
                     Log.i(TAG, "提交一条GPSPoint记录到数据库 Lat:" + amapLocation.getLatitude() + " Lng:" + amapLocation.getLongitude());
+                    mNumOfGPSPoint++;
                     mLastValidLocation=amapLocation;
                     isLastValidLocationInit=true;
 
