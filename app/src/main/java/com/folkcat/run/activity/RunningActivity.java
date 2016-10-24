@@ -111,6 +111,7 @@ public class RunningActivity extends Activity implements LocationSource,
     public void onCreate(Bundle savedInstanceState){
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_running);
+        mHandler=new Handler();
         initView();
 
         initMap();
@@ -118,6 +119,7 @@ public class RunningActivity extends Activity implements LocationSource,
         mMapView.onCreate(savedInstanceState);
     }
     private void initView(){
+        /*
         mHandler=new Handler();
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
             //透明状态栏
@@ -125,6 +127,7 @@ public class RunningActivity extends Activity implements LocationSource,
             //透明导航栏
             getWindow().addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);
         }
+        */
         mMapView = (MapView) findViewById(R.id.map);
         mTvDistance=(TextView)findViewById(R.id.tv_distance);
         mTvSpeed=(TextView)findViewById(R.id.tv_speed);
